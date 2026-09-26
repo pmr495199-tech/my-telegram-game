@@ -91,8 +91,8 @@
         }
         .wheel-container {
             position: relative;
-            width: 280px;
-            height: 280px;
+            width: 300px;
+            height: 300px;
             margin-bottom: 20px;
         }
         .wheel-pointer {
@@ -118,28 +118,9 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             background: conic-gradient(
                 #38bdf8 0deg 180deg,    /* 1 зірка - 50% */
-                #a855f7 180deg 252deg,   /* 3 зірки - 30% */
-                #22c55e 252deg 324deg,   /* 5 зірок - 20% */
-                #f59e0b 324deg 331.2deg, /* Подарунок 1 - 2% */
-                #ec4899 331.2deg 334.44deg, /* Подарунок 2 - 0.9% */
-                #ef4444 334.44deg 360deg  /* Подарунок 3 - 0.46% (з урахуванням залишку) */
+                #a855f7 180deg 288deg,   /* 3 зірки - 30% */
+                #22c55e 288deg 360deg    /* Охоплює решту секторів з картинками */
             );
-        }
-        .wheel-sector-text {
-            position: absolute;
-            width: 50%;
-            height: 50%;
-            top: 50%;
-            left: 50%;
-            transform-origin: 0% 0%;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 25px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
 
         .spin-btn {
@@ -210,6 +191,12 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            align-items: center;
+        }
+        .item-img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
         }
         .item-name {
             font-size: 14px;
@@ -226,6 +213,7 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 5px;
+            width: 100%;
         }
 
         /* Нижня панель навігації */
@@ -302,7 +290,8 @@
     <div class="roulette-overlay" id="rouletteOverlay">
         <div class="roulette-window">
             <h3 style="margin-bottom: 10px;">Результат обертання</h3>
-            <p id="winResultText" style="font-size: 16px; font-weight: bold; color: #facc15; margin: 15px 0;"></p>
+            <div id="modalPrizeContent" style="margin: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 8px;"></div>
+            <p id="winResultText" style="font-size: 16px; font-weight: bold; color: #facc15;"></p>
             <a id="claimBtn" class="claim-btn" href="#" target="_blank">📲 Забрати приз у адміна</a>
             <br>
             <button id="closeModalBtn" style="background: #334155; color: white; border: none; padding: 8px 20px; border-radius: 8px; margin-top: 15px; cursor: pointer;" onclick="closeOverlay()">Закрити</button>
@@ -324,20 +313,20 @@
 
 <script>
     // ВСТАВ СВІЙ ТЕЛЕГРАМ НІКНЕЙМ ТУТ (без @)
-    const ADMIN_USERNAME = "ваш_телеграм_нік";
+    const ADMIN_USERNAME = "@prokop_gg";
 
     let stars = parseInt(localStorage.getItem('wheel_stars')) || 100;
     let inventory = JSON.parse(localStorage.getItem('wheel_inventory')) || [];
     let currentRotation = 0;
 
-    // Список призів з твоїми точними шансами (сума = 100%)
+    // Список призів з точними шансами: 1 зірка (50%), 3 зірки (30%), 5 зірок (20%), і твої файли картинки з відповідними шансами
     const prizes = [
-        { id: 'star1', name: '1 зірка', icon: '⭐', type: 'stars', value: 1, chance: 50, color: '#38bdf8' },
-        { id: 'star3', name: '3 зірки', icon: '⭐', type: 'stars', value: 3, chance: 30, color: '#a855f7' },
-        { id: 'star5', name: '5 зірок', icon: '⭐', type: 'stars', value: 5, chance: 20, color: '#22c55e' },
-        { id: 'gift1', name: 'Подарунок #1', icon: '🎁', type: 'item', price: 20, chance: 2.0, color: '#f59e0b' },
-        { id: 'gift2', name: 'Подарунок #2', icon: '💎', type: 'item', price: 50, chance: 0.9, color: '#ec4899' },
-        { id: 'gift3', name: 'Подарунок #3', icon: '👑', type: 'item', price: 100, chance: 0.1, color: '#ef4444' }
+        { id: 'star1', name: '1 зірка', type: 'stars', value: 1, chance: 50, color: '#38bdf8', isImg: false, display: '⭐' },
+        { id: 'star3', name: '3 зірки', type: 'stars', value: 3, chance: 30, color: '#a855f7', isImg: false, display: '⭐⭐⭐' },
+        { id: 'star5', name: '5 зірок', type: 'stars', value: 5, chance: 20, color: '#22c55e', isImg: false, display: '⭐⭐⭐⭐⭐' },
+        { id: 'item1', name: 'Річ #1', type: 'item', price: 20, chance: 2.0, color: '#f59e0b', isImg: true, src: '1790461326422.png-1790461350631.png' },
+        { id: 'item2', name: 'Річ #2', type: 'item', price: 50, chance: 0.9, color: '#ec4899', isImg: true, src: '1790461370604.png-1790461398212.png' },
+        { id: 'item3', name: 'Річ #3', type: 'item', price: 100, chance: 0.1, color: '#ef4444', isImg: true, src: '1790461443917.png-1790461419606.png' }
     ];
 
     function updateUI() {
@@ -388,13 +377,10 @@
 
         let winningPrize = prizes[winningIndex];
 
-        // Розраховуємо кут повороту (кожен сектор має свій діапазон)
-        // 360 градусів ділимо на 6 секторів по 60 градусів
+        // Розраховуємо кут повороту (кожен сектор має рівний кут)
         let sectorAngle = 360 / prizes.length;
-        // Центр потрібного сектору
         let targetSectorAngle = winningIndex * sectorAngle + (sectorAngle / 2);
         
-        // Робимо мінімум 5 повних обертів (1800 градусів) + доводимо стрілку до потрібного сектору
         let extraSpins = 360 * 5;
         let finalRotation = currentRotation + extraSpins + (360 - (currentRotation % 360)) + (360 - targetSectorAngle);
         
@@ -403,27 +389,35 @@
         const wheel = document.getElementById('fortuneWheel');
         wheel.style.transform = `rotate(${currentRotation}deg)`;
 
-        // Показуємо результат після закінчення анімації (4 секунди)
+        // Показуємо результат після завершення анімації (4 секунди)
         setTimeout(() => {
             const overlay = document.getElementById('rouletteOverlay');
             const resultText = document.getElementById('winResultText');
+            const modalContent = document.getElementById('modalPrizeContent');
             const claimBtn = document.getElementById('claimBtn');
 
             claimBtn.style.display = 'none';
 
+            if (winningPrize.isImg) {
+                modalContent.innerHTML = `<img src="${winningPrize.src}" style="width: 64px; height: 64px; object-fit: contain;">`;
+            } else {
+                modalContent.innerHTML = `<div style="font-size: 32px;">${winningPrize.display}</div>`;
+            }
+
             if (winningPrize.type === 'stars') {
                 stars += winningPrize.value;
                 updateUI();
-                resultText.innerHTML = `Вітаємо! Ви виграли <span style="color:${winningPrize.color}">${winningPrize.icon} ${winningPrize.name}</span>! Зараховано на баланс.`;
+                resultText.innerHTML = `Вітаємо! Ви виграли <span style="color:${winningPrize.color}">${winningPrize.name}</span>! Зараховано на баланс.`;
             } else {
                 let uniqueId = Math.floor(100000 + Math.random() * 900000);
-                resultText.innerHTML = `Вітаємо! Ви виграли рідкісний приз: <span style="color:${winningPrize.color}">${winningPrize.icon} ${winningPrize.name}</span>!`;
+                resultText.innerHTML = `Вітаємо! Ви виграли рідкісний предмет!`;
                 
                 inventory.push({
                     name: winningPrize.name,
-                    icon: winningPrize.icon,
                     color: winningPrize.color,
                     price: winningPrize.price,
+                    isImg: true,
+                    src: winningPrize.src,
                     id: uniqueId
                 });
                 updateUI();
@@ -451,10 +445,10 @@
 
         list.innerHTML = inventory.map((item, index) => `
             <div class="inventory-item" style="border-color: ${item.color}">
-                <span style="font-size: 32px;">${item.icon}</span>
+                <img src="${item.src}" class="item-img" alt="Item">
                 <div class="item-name" style="color: ${item.color}">${item.name}</div>
                 <div style="font-size: 11px; color: #94a3b8;">ID: #${item.id}</div>
-                <a href="https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(`Привіт! Забираю свій приз з колеса: ${item.name} (ID: #${item.id})`)}" target="_blank" style="display:block; background:#2563eb; color:white; text-decoration:none; padding:5px; border-radius:6px; font-size:11px; font-weight:bold; margin-top:5px;">Забрати у адміна</a>
+                <a href="https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(`Привіт! Забираю свій приз з колеса: ${item.name} (ID: #${item.id})`)}" target="_blank" style="display:block; background:#2563eb; color:white; text-decoration:none; padding:5px; border-radius:6px; font-size:11px; font-weight:bold; margin-top:5px; width:100%; text-align:center;">Забрати у адміна</a>
                 <button class="sell-btn" onclick="sellItem(${index})">Продати за ${item.price}⭐</button>
             </div>
         `).join('');
