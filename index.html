@@ -2,130 +2,472 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Головне Меню</title>
-    <!-- SDK Telegram Web App -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Колесо Фортуни</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 90px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Верхня панель балансу */
+        .header-stats {
+            display: flex;
+            justify-content: space-between;
+            background: #1e293b;
+            padding: 15px 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            align-items: center;
+        }
+        .balance-box {
+            font-size: 20px;
+            font-weight: 800;
+            color: #facc15;
+        }
+        .earn-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .earn-btn:active {
+            transform: scale(0.95);
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #121212);
-            color: var(--tg-theme-text-color, #ffffff);
+        /* Заголовок */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #38bdf8;
+            text-align: center;
+        }
+
+        /* КОЛЕСО ФОРТУНИ */
+        .wheel-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            min-height: 100vh;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .wheel-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin-bottom: 20px;
+        }
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 24px solid #ef4444;
+            z-index: 10;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid #334155;
+            position: relative;
+            overflow: hidden;
+            transition: transform 4s cubic-bezier(0.15, 0.85, 0.15, 1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background: conic-gradient(
+                #38bdf8 0deg 180deg,    /* 1 зірка - 50% */
+                #a855f7 180deg 252deg,   /* 3 зірки - 30% */
+                #22c55e 252deg 324deg,   /* 5 зірок - 20% */
+                #f59e0b 324deg 331.2deg, /* Подарунок 1 - 2% */
+                #ec4899 331.2deg 334.44deg, /* Подарунок 2 - 0.9% */
+                #ef4444 334.44deg 360deg  /* Подарунок 3 - 0.46% (з урахуванням залишку) */
+            );
+        }
+        .wheel-sector-text {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0% 0%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 25px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .spin-btn {
+            background: linear-gradient(135deg, #facc15, #f59e0b);
+            color: #78350f;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(250, 204, 21, 0.3);
+            transition: transform 0.1s;
+        }
+        .spin-btn:active {
+            transform: scale(0.95);
+        }
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Модальне вікно результату */
+        .roulette-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
         }
-
-        .header {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .title {
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 8px;
-            color: var(--tg-theme-button-color, #0088cc);
-        }
-
-        .user-info {
-            font-size: 16px;
-            opacity: 0.8;
-        }
-
-        .menu-container {
+        .roulette-window {
             width: 100%;
-            max-width: 320px;
+            max-width: 360px;
+            background: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+        }
+        .claim-btn {
+            display: none;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        /* Інвентар */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .inventory-item {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            margin-bottom: 40px;
+            justify-content: space-between;
         }
-
-        .btn {
-            width: 100%;
-            padding: 16px;
-            font-size: 18px;
-            font-weight: 700;
+        .item-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 6px 0;
+        }
+        .sell-btn {
+            background: #ef4444;
+            color: white;
             border: none;
-            border-radius: 14px;
+            padding: 6px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
             cursor: pointer;
-            transition: transform 0.1s ease, opacity 0.2s;
-            text-align: center;
+            margin-top: 5px;
         }
 
-        .btn-primary {
-            background-color: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4);
+        /* Нижня панель навігації */
+        .nav-bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 75px;
+            background: #1e293b;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #334155;
+            max-width: 480px;
+            margin: 0 auto;
         }
-
-        .btn-secondary {
-            background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
-            color: var(--tg-theme-text-color, #ffffff);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .nav-item {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
         }
-
-        .btn:active {
-            transform: scale(0.96);
-            opacity: 0.9;
+        .nav-item.active {
+            color: #38bdf8;
+        }
+        .nav-icon {
+            font-size: 20px;
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1 class="title">МОЯ ГРА</h1>
-        <p class="user-info" id="user-greeting">Вітаємо у грі!</p>
+<div class="app-container">
+    <div class="content">
+        
+        <!-- БАЛАНС ЗВЕРХУ -->
+        <div class="header-stats">
+            <div>
+                <div style="font-size: 12px; color: #94a3b8;">Баланс зірок</div>
+                <div class="balance-box"><span id="ui-stars">100</span> ⭐</div>
+            </div>
+            <button class="earn-btn" onclick="earnStars()">+ Безкоштовно</button>
+        </div>
+
+        <!-- ВКЛАДКА 1: КОЛЕСО ФОРТУНИ -->
+        <div id="tab-cases" class="tab-content active">
+            <div class="section-title">🎡 Колесо Фортуни (Ціна: 20⭐)</div>
+            
+            <div class="wheel-wrapper">
+                <div class="wheel-container">
+                    <div class="wheel-pointer"></div>
+                    <div class="wheel" id="fortuneWheel"></div>
+                </div>
+                <button class="spin-btn" id="spinBtn" onclick="spinWheel()">Крутити!</button>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА 2: ІНВЕНТАР -->
+        <div id="tab-inventory" class="tab-content">
+            <div class="section-title">Мій інвентар</div>
+            <div class="inventory-grid" id="inventory-list">
+                <!-- Сюди додаються призи -->
+            </div>
+        </div>
+
     </div>
 
-    <div class="menu-container">
-        <button class="btn btn-primary" onclick="playGame()">🎮 ГРАТИ</button>
-        <button class="btn btn-secondary" onclick="openLeaderboard()">🏆 РЕКОРДИ</button>
-        <button class="btn btn-secondary" onclick="openSettings()">⚙️ НАЛАШТУВАННЯ</button>
+    <!-- МОДАЛКА РЕЗУЛЬТАТУ -->
+    <div class="roulette-overlay" id="rouletteOverlay">
+        <div class="roulette-window">
+            <h3 style="margin-bottom: 10px;">Результат обертання</h3>
+            <p id="winResultText" style="font-size: 16px; font-weight: bold; color: #facc15; margin: 15px 0;"></p>
+            <a id="claimBtn" class="claim-btn" href="#" target="_blank">📲 Забрати приз у адміна</a>
+            <br>
+            <button id="closeModalBtn" style="background: #334155; color: white; border: none; padding: 8px 20px; border-radius: 8px; margin-top: 15px; cursor: pointer;" onclick="closeOverlay()">Закрити</button>
+        </div>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+    <!-- НИЖНЯ ПАНЕЛЬ НАВІГАЦІЇ -->
+    <div class="nav-bar">
+        <button class="nav-item active" onclick="switchTab('cases', this)">
+            <span class="nav-icon">🎡</span>
+            <span>Колесо</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('inventory', this)">
+            <span class="nav-icon">🏆</span>
+            <span>Інвентар</span>
+        </button>
+    </div>
+</div>
 
-        // Отримання імені користувача з Telegram
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('user-greeting').innerText = `Гравець: ${user.first_name}`;
+<script>
+    // ВСТАВ СВІЙ ТЕЛЕГРАМ НІКНЕЙМ ТУТ (без @)
+    const ADMIN_USERNAME = "ваш_телеграм_нік";
+
+    let stars = parseInt(localStorage.getItem('wheel_stars')) || 100;
+    let inventory = JSON.parse(localStorage.getItem('wheel_inventory')) || [];
+    let currentRotation = 0;
+
+    // Список призів з твоїми точними шансами (сума = 100%)
+    const prizes = [
+        { id: 'star1', name: '1 зірка', icon: '⭐', type: 'stars', value: 1, chance: 50, color: '#38bdf8' },
+        { id: 'star3', name: '3 зірки', icon: '⭐', type: 'stars', value: 3, chance: 30, color: '#a855f7' },
+        { id: 'star5', name: '5 зірок', icon: '⭐', type: 'stars', value: 5, chance: 20, color: '#22c55e' },
+        { id: 'gift1', name: 'Подарунок #1', icon: '🎁', type: 'item', price: 20, chance: 2.0, color: '#f59e0b' },
+        { id: 'gift2', name: 'Подарунок #2', icon: '💎', type: 'item', price: 50, chance: 0.9, color: '#ec4899' },
+        { id: 'gift3', name: 'Подарунок #3', icon: '👑', type: 'item', price: 100, chance: 0.1, color: '#ef4444' }
+    ];
+
+    function updateUI() {
+        document.getElementById('ui-stars').innerText = stars;
+        localStorage.setItem('wheel_stars', stars);
+        localStorage.setItem('wheel_inventory', JSON.stringify(inventory));
+        renderInventory();
+    }
+
+    function earnStars() {
+        stars += 10;
+        updateUI();
+    }
+
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        
+        document.getElementById('tab-' + tabId).classList.add('active');
+        element.classList.add('active');
+    }
+
+    function spinWheel() {
+        const spinPrice = 20;
+        if (stars < spinPrice) {
+            alert('Недостатньо зірок! Натисніть "+ Безкоштовно".');
+            return;
         }
 
-        function triggerVibration() {
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('medium');
+        stars -= spinPrice;
+        updateUI();
+
+        const spinBtn = document.getElementById('spinBtn');
+        spinBtn.disabled = true;
+
+        // Визначаємо виграш за шансами
+        let randomPercent = Math.random() * 100;
+        let cumulative = 0;
+        let winningIndex = 0;
+
+        for (let i = 0; i < prizes.length; i++) {
+            cumulative += prizes[i].chance;
+            if (randomPercent <= cumulative) {
+                winningIndex = i;
+                break;
             }
         }
 
-        function playGame() {
-            triggerVibration();
-            alert('Тут запускатиметься ігровий процес!');
+        let winningPrize = prizes[winningIndex];
+
+        // Розраховуємо кут повороту (кожен сектор має свій діапазон)
+        // 360 градусів ділимо на 6 секторів по 60 градусів
+        let sectorAngle = 360 / prizes.length;
+        // Центр потрібного сектору
+        let targetSectorAngle = winningIndex * sectorAngle + (sectorAngle / 2);
+        
+        // Робимо мінімум 5 повних обертів (1800 градусів) + доводимо стрілку до потрібного сектору
+        let extraSpins = 360 * 5;
+        let finalRotation = currentRotation + extraSpins + (360 - (currentRotation % 360)) + (360 - targetSectorAngle);
+        
+        currentRotation = finalRotation;
+
+        const wheel = document.getElementById('fortuneWheel');
+        wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+        // Показуємо результат після закінчення анімації (4 секунди)
+        setTimeout(() => {
+            const overlay = document.getElementById('rouletteOverlay');
+            const resultText = document.getElementById('winResultText');
+            const claimBtn = document.getElementById('claimBtn');
+
+            claimBtn.style.display = 'none';
+
+            if (winningPrize.type === 'stars') {
+                stars += winningPrize.value;
+                updateUI();
+                resultText.innerHTML = `Вітаємо! Ви виграли <span style="color:${winningPrize.color}">${winningPrize.icon} ${winningPrize.name}</span>! Зараховано на баланс.`;
+            } else {
+                let uniqueId = Math.floor(100000 + Math.random() * 900000);
+                resultText.innerHTML = `Вітаємо! Ви виграли рідкісний приз: <span style="color:${winningPrize.color}">${winningPrize.icon} ${winningPrize.name}</span>!`;
+                
+                inventory.push({
+                    name: winningPrize.name,
+                    icon: winningPrize.icon,
+                    color: winningPrize.color,
+                    price: winningPrize.price,
+                    id: uniqueId
+                });
+                updateUI();
+
+                let msg = encodeURIComponent(`Привіт! Я виграв у Колесі Фортуни приз: ${winningPrize.name} (ID: #${uniqueId}). Чекаю на видачу!`);
+                claimBtn.href = `https://t.me/${ADMIN_USERNAME}?text=${msg}`;
+                claimBtn.style.display = 'inline-block';
+            }
+
+            overlay.style.display = 'flex';
+            spinBtn.disabled = false;
+        }, 4000);
+    }
+
+    function closeOverlay() {
+        document.getElementById('rouletteOverlay').style.display = 'none';
+    }
+
+    function renderInventory() {
+        const list = document.getElementById('inventory-list');
+        if (inventory.length === 0) {
+            list.innerHTML = `<p style="color: #94a3b8; grid-column: span 2; text-align: center; padding: 20px;">Поки що пусто. Спробуйте покрутити колесо!</p>`;
+            return;
         }
 
-        function openLeaderboard() {
-            triggerVibration();
-            alert('Розділ "Рекорди" в розробці');
-        }
+        list.innerHTML = inventory.map((item, index) => `
+            <div class="inventory-item" style="border-color: ${item.color}">
+                <span style="font-size: 32px;">${item.icon}</span>
+                <div class="item-name" style="color: ${item.color}">${item.name}</div>
+                <div style="font-size: 11px; color: #94a3b8;">ID: #${item.id}</div>
+                <a href="https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(`Привіт! Забираю свій приз з колеса: ${item.name} (ID: #${item.id})`)}" target="_blank" style="display:block; background:#2563eb; color:white; text-decoration:none; padding:5px; border-radius:6px; font-size:11px; font-weight:bold; margin-top:5px;">Забрати у адміна</a>
+                <button class="sell-btn" onclick="sellItem(${index})">Продати за ${item.price}⭐</button>
+            </div>
+        `).join('');
+    }
 
-        function openSettings() {
-            triggerVibration();
-            alert('Розділ "Налаштування" в розробці');
-        }
-    </script>
+    function sellItem(index) {
+        stars += inventory[index].price;
+        inventory.splice(index, 1);
+        updateUI();
+    }
+
+    updateUI();
+</script>
+
 </body>
 </html>
